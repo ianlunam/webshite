@@ -1,0 +1,10 @@
+[Unit]
+Description=433_monitor
+
+[Service]
+Restart=always
+ExecStart=/usr/local/sbin/433_monitor
+
+[Install]
+WantedBy=multi-user.target
+
