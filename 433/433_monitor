@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# set -x
+
+# WME=/root/x/rtl_433.json
+# inotifywait -m $WME -e modify | while read path action file
+# do
+#   DATA=`tail -1 $WME`
+
+export PATH=$PATH:/usr/bin:/usr/local/bin
+
+rtl_433 -F json -q | while read DATA
+do
+  ID=`echo "$DATA" | jq ".id" -r`
+  case "$ID" in
+    119)
+      # Oregon Scientific THN132N Temperature Gauge
+      # {"time" : "2018-01-13 12:51:00", "brand" : "OS", "model" : "THN132N", "id" : 119, "channel" : 1, "battery" : "OK", "temperature_C" : 3.700}
+      echo -n "Temperature: `echo "$DATA" | jq ".battery" -r`"
+      echo -n ",`echo "$DATA" | jq ".time" -r`"
+      echo ",`echo "$DATA" | jq ".temperature_C" -r`"
+      echo "insert into history values ('`echo \"$DATA\" | jq \".time\" -r`', `echo \"$DATA\" | jq \".temperature_C\" -r`, 0, 0);" | /usr/bin/mysql temps -h 192.168.0.244 # 2>/dev/null
+      ;;
+    145433412)
+      # Oil Watchman Sonic
+      # {"time" : "2018-01-13 12:09:30", "model" : "Oil Watchman", "id" : 145433412, "flags" : 128, "maybetemp" : 26, "temperature_C" : 5.000, "binding_countdown" : 0, "depth" : 118}
+      echo -n "Oil Levels: `echo "$DATA" | jq ".time" -r`"
+      echo -n ", `echo "$DATA" | jq ".depth" -r`"
+      echo ",`echo "$DATA" | jq ".temperature_C" -r`"
+      echo "insert into oil values ('`echo \"$DATA\" | jq \".time\" -r`', `echo \"$DATA\" | jq \".temperature_C\" -r`, `echo \"$DATA\" | jq \".depth\" -r`, 0);" | /usr/bin/mysql temps -h 192.168.0.244 # 2>/dev/null
+      ;;
+    *)
+      echo "Unknown $DATA"
+      ;;
+  esac
+done
+
