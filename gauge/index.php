@@ -34,8 +34,8 @@ function vincentyGreatCircleDistance( $latitudeFrom, $longitudeFrom, $latitudeTo
 $json = file_get_contents('http://192.168.0.58:8090/dump1090/data.json');
 $obj = json_decode($json, true);
 
-$baseLat = 51.1541;
-$baseLon = -0.2255;
+$baseLat = 51.300261;
+$baseLon = 0.579266;
 $earthRad = 3440.227;
 
 $FURTHEST = 0;
@@ -66,7 +66,6 @@ $chartPlaneCount = new FusionCharts("AngularGauge", "ex5", "100%", "200", "chart
         "caption": "Planes Monitored",
         "lowerlimit": "0",
         "upperlimit": "50",
-        "bgcolor": "FFFFFF",
         "gaugeFillMix": "{dark-30},{light-60},{dark-10}",
         "gaugeFillRatio": "15",
         "gaugeInnerRadius": "40%",
@@ -112,8 +111,7 @@ $chartPlaneDist = new FusionCharts("AngularGauge", "ex6", "100%", "200", "chart-
         "refreshInterval": "30",
         "caption": "Most Distant Plane (km)",
         "lowerlimit": "0",
-        "upperlimit": "300",
-        "bgcolor": "FFFFFF",
+        "upperlimit": "200",
         "gaugeFillMix": "{dark-30},{light-60},{dark-10}",
         "gaugeFillRatio": "15",
         "gaugeInnerRadius": "40%",
@@ -133,7 +131,7 @@ $chartPlaneDist = new FusionCharts("AngularGauge", "ex6", "100%", "200", "chart-
             },
             {
                 "minvalue": "50",
-                "maxvalue": "300",
+                "maxvalue": "200",
                 "code": "6baa01"
             }
         ]
@@ -216,7 +214,6 @@ $chartDaysRemaining = new FusionCharts("AngularGauge", "ex1", "100%", "200", "ch
         "subcaption": "Run Dry: ' . $ENDOIL->format('d-m-Y H:i') . '",
         "lowerlimit": "0",
         "upperlimit": "250",
-        "bgcolor": "FFFFFF",
         "gaugeFillMix": "{dark-30},{light-60},{dark-10}",
         "gaugeFillRatio": "15",
         "gaugeInnerRadius": "40%",
@@ -263,7 +260,6 @@ $chartTankLevel = new FusionCharts("cylinder", "ex2", "100%", "200", "chart-tank
         "caption": "Oil Tank View",
         "lowerLimitDisplay": "Empty",
         "upperLimitDisplay": "Full",
-        "bgcolor": "FFFFFF",
         "lowerlimit": "0",
         "upperlimit": "100",
         "numbersuffix": "%",
@@ -281,7 +277,6 @@ $chartOilLitres = new FusionCharts("AngularGauge", "ex7", "100%", "200", "chart-
         "caption": "Oil Level (litres)",
         "lowerlimit": "0",
         "upperlimit": "2500",
-        "bgcolor": "FFFFFF",
         "gaugeFillMix": "{dark-30},{light-60},{dark-10}",
         "gaugeFillRatio": "15",
         "gaugeInnerRadius": "40%",
@@ -354,7 +349,6 @@ $chartOutsideTemp = new FusionCharts("thermometer", "ex3", "100%", "200", "chart
         "caption": "Outside Temperature",
         "lowerlimit": "-10",
         "upperlimit": "40",
-        "bgcolor": "FFFFFF",
         "decimals": "1",
         "numberSuffix": "°C",
         "showhovereffect": "1",
@@ -377,7 +371,6 @@ $chartTankTemp = new FusionCharts("thermometer", "ex4", "100%", "200", "chart-ta
         "caption": "Oil Tank Temperature",
         "lowerlimit": "-10",
         "upperlimit": "40",
-        "bgcolor": "FFFFFF",
         "decimals": "1",
         "numberSuffix": "°C",
         "showhovereffect": "1",
