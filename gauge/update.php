@@ -63,11 +63,13 @@ function getPlaneDistance() {
 function getTankData($mysqli, $WANTS) {
   $PCT = 0;
   $TMP = 0;
+  $AGE = 0;
   # Oil tank level and temp
-  if ($result = $mysqli->query("select temperature, round((129-depth) * 100 / 130, 1) as level from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
+  if ($result = $mysqli->query("select temperature, round((129-depth) * 100 / 130, 1) as level, ((UNIX_TIMESTAMP(cap_time) - UNIX_TIMESTAMP()) /60) as datage from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
     while($row = $result->fetch_assoc()){
       $PCT = $row['level'];
       $TMP = $row['temperature'];
+      $AGE = $row['datage'];
     }
     $result->close();
   }
@@ -78,22 +80,34 @@ function getTankData($mysqli, $WANTS) {
     case "tltrs":
       echo (2500 / 100 * $PCT);
       break;
+    case "oilage":
+      echo $AGE;
+      break;
     default:
       echo $TMP;
       break;
   }
 }
 
-function getTemp($mysqli) {
+function getTemp($mysqli, $WANTS) {
   $TMPo = 0;
+  $AGE = 0;
   # Outside temperature
-  if ($result = $mysqli->query("select temperature from temperature where cap_time = (select max(cap_time) from temperature)")) {
+  if ($result = $mysqli->query("select temperature, ((UNIX_TIMESTAMP(cap_time) - UNIX_TIMESTAMP()) /60) as datage from temperature where cap_time = (select max(cap_time) from temperature)")) {
     while($row = $result->fetch_assoc()){
       $TMPo = $row['temperature'];
+      $AGE = $row['datage'];
     }
     $result->close();
   }
-  echo $TMPo;
+  switch ($WANTS) {
+    case "tempage":
+      echo $AGE;
+      break;
+    default:
+      echo $TMPo;
+      break;
+  }
 }
 
 function getBattery($mysqli) {
@@ -164,6 +178,9 @@ function getMysqlData($WANTS) {
     case "tltrs":
       getTankData($mysqli, $WANTS);
       break;
+    case "oilage":
+      getTankData($mysqli, $WANTS);
+      break;
     case "dremain":
       getDayRemaining($mysqli);
       break;
@@ -171,7 +188,7 @@ function getMysqlData($WANTS) {
       getBattery($mysqli);
       break;
     default:
-      getTemp($mysqli);
+      getTemp($mysqli, $WANTS);
   }
 
   mysqli_close($mysqli);

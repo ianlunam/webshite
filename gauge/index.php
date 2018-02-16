@@ -333,10 +333,12 @@ $chartOilLitres->render();
 # Outside temperature
 $TEMP_OUT = 0;
 $BATTERY = "";
-if ($result = $mysqli->query("select temperature, battery from temperature where cap_time = (select max(cap_time) from temperature)")) {
+$TAGE = 0;
+if ($result = $mysqli->query("select temperature, battery, ((UNIX_TIMESTAMP(cap_time) - UNIX_TIMESTAMP()) /60) as datage from temperature where cap_time = (select max(cap_time) from temperature)")) {
   while($row = $result->fetch_assoc()){
     $TEMP_OUT = $row['temperature'];
     $BATTERY = $row['battery'];
+    $TAGE = $row['datage'];
   }
   $result->close();
 }
@@ -348,12 +350,17 @@ if ( $BATTERY == "OK" ) {
 
 # Oil tank temp
 $TEMP_TANK = 0;
-if ($result = $mysqli->query("select temperature from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
+$PAGE = 0;
+if ($result = $mysqli->query("select temperature, ((UNIX_TIMESTAMP(cap_time) - UNIX_TIMESTAMP()) /60) as datage from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
   while($row = $result->fetch_assoc()){
     $TEMP_TANK = $row['temperature'];
+    $PAGE = $row['datage'];
   }
   $result->close();
 }
+
+# Clean up
+mysqli_close($mysqli);
 
 ##################################
 # Temperature gauges
@@ -468,7 +475,7 @@ $chartTempBattery = new FusionCharts("bulb", "ex8", "100%", "200", "chart-temp-b
     "chart": {
         "dataStreamUrl": "update.php?data=battery",
         "refreshInterval": "30",
-        "caption": "Battery Status",
+        "caption": "Battery",
         "upperlimit": "1",
         "lowerlimit": "0",
         "captionPadding": "30",
@@ -498,8 +505,75 @@ $chartTempBattery = new FusionCharts("bulb", "ex8", "100%", "200", "chart-temp-b
 }');
 $chartTempBattery->render();
 
-# Clean up
-mysqli_close($mysqli);
+# Temperature gauge battery
+$chartTempAge = new FusionCharts("bulb", "ex9", "100%", "200", "chart-temp-age", "json", '{
+    "chart": {
+        "dataStreamUrl": "update.php?data=tempage",
+        "refreshInterval": "30",
+        "caption": "Temp Data",
+        "upperlimit": "1",
+        "lowerlimit": "0",
+        "captionPadding": "30",
+        "showshadow": "0",
+        "showvalue": "1",
+        "useColorNameAsValue": "1",
+        "placeValuesInside": "1",
+        "theme": "fint"
+     },
+     "colorrange": {
+        "color": [
+            {
+                "minvalue": "-6000",
+                "maxvalue": "-60",
+                "label": "No Data (1hr)!",
+                "code": "#ff0000"
+            },
+            {
+                "minvalue": "-60",
+                "maxvalue": "0",
+                "label": "All good",
+                "code": "#00ff00"
+            }
+        ]
+    },
+    "value": "' . $TAGE . '"
+}');
+$chartTempAge->render();
+
+# Temperature gauge battery
+$chartOilAge = new FusionCharts("bulb", "ex10", "100%", "200", "chart-oil-age", "json", '{
+    "chart": {
+        "dataStreamUrl": "update.php?data=oilage",
+        "refreshInterval": "30",
+        "caption": "Oil Data",
+        "upperlimit": "1",
+        "lowerlimit": "0",
+        "captionPadding": "30",
+        "showshadow": "0",
+        "showvalue": "1",
+        "useColorNameAsValue": "1",
+        "placeValuesInside": "1",
+        "theme": "fint"
+     },
+     "colorrange": {
+        "color": [
+            {
+                "minvalue": "-6000",
+                "maxvalue": "-120",
+                "label": "No Data (2hrs)!",
+                "code": "#ff0000"
+            },
+            {
+                "minvalue": "-120",
+                "maxvalue": "0",
+                "label": "All good",
+                "code": "#00ff00"
+            }
+        ]
+    },
+    "value": "' . $PAGE . '"
+}');
+$chartOilAge->render();
 
 ?>
 
@@ -531,7 +605,23 @@ function updateImage(imageNum) {
 }
 
 </script>
-
+<style media="screen" type="text/css">
+.one {
+    width: 33%;
+    height: 200px;
+    float: left;
+}
+.two {
+    width: 33%;
+    height: 200px;
+    float: left;
+}
+.three {
+    width: 33%;
+    height: 200px;
+    float: left;
+}
+</style>
 </head>
 <body>
 </head>
@@ -549,10 +639,13 @@ function updateImage(imageNum) {
   <td><a href="oil.php"><div id="chart-remain"></div></a></td>
   <td><a href="oil.php"><div id="chart-tank-temp"></div></a></td>
 </tr>
-<tr><th colspan="2">Temperature</th></tr>
+<tr><th>Temperature</th><th>Status</th></tr>
 <tr>
   <td><a href="temp.php"><div id="chart-outside-temp"></div></a></td>
-  <td><a href="temp.php"><div id="chart-temp-battery"></div></a></td>
+  <td>
+    <a href="temp.php"><div id="chart-temp-battery" class="one"></div><div id="chart-temp-age" class="two"></div></a>
+    <a href="oil.php"><div id="chart-oil-age" class="three"></div></a></div>
+ </td>
 </tr>
 </table>
 </td><td width="50%">
