@@ -45,19 +45,18 @@ function getPlaneDistance() {
 
   $baseLat = 51.300261;
   $baseLon = 0.579266;
-  $earthRad = 3440.227;
+  $earthRad = 3440;
 
   $furthest = 0;
 
   foreach ($obj as $plane) {
-    if ( $plane['validposition'] == '1' && $plane['validtrack'] == '1' ) {
+    if ( $plane['validposition'] == '1' && $plane['validtrack'] == '1' && $plane['seen'] <= 60 ) {
       $planeDist = vincentyGreatCircleDistance($baseLat, $baseLon, $plane['lat'], $plane['lon'], $earthRad);
       if ( $planeDist > $furthest ) {
         $furthest = $planeDist;
       }
     }
   }
-  $furthest = $furthest * 1.60934;
   echo $furthest;
 }
 
@@ -65,7 +64,7 @@ function getTankData($mysqli, $WANTS) {
   $PCT = 0;
   $TMP = 0;
   # Oil tank level and temp
-  if ($result = $mysqli->query("select temperature, round((129-humidity)*100/130,1) as level from oil where cap_time = (select max(cap_time) from oil)")) {
+  if ($result = $mysqli->query("select temperature, round((129-depth) * 100 / 130, 1) as level from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
     while($row = $result->fetch_assoc()){
       $PCT = $row['level'];
       $TMP = $row['temperature'];
@@ -77,7 +76,7 @@ function getTankData($mysqli, $WANTS) {
       echo $PCT;
       break;
     case "tltrs":
-      echo (2500/100*$PCT);
+      echo (2500 / 100 * $PCT);
       break;
     default:
       echo $TMP;
@@ -88,7 +87,7 @@ function getTankData($mysqli, $WANTS) {
 function getTemp($mysqli) {
   $TMPo = 0;
   # Outside temperature
-  if ($result = $mysqli->query("select temperature from history where cap_time = (select max(cap_time) from history)")) {
+  if ($result = $mysqli->query("select temperature from temperature where cap_time = (select max(cap_time) from temperature)")) {
     while($row = $result->fetch_assoc()){
       $TMPo = $row['temperature'];
     }
@@ -97,11 +96,28 @@ function getTemp($mysqli) {
   echo $TMPo;
 }
 
+function getBattery($mysqli) {
+  $BATT = 0;
+  # Outside temperature
+  if ($result = $mysqli->query("select battery from temperature where cap_time = (select max(cap_time) from temperature)")) {
+    while($row = $result->fetch_assoc()){
+      $BATT = $row['battery'];
+    }
+    $result->close();
+  }
+  if ( $BATT == "OK" ) {
+    $BATT = 1;
+  } else {
+    $BATT = 0;
+  }
+  echo $BATT;
+}
+
 function getDayRemaining($mysqli) {
   # Level around 14 days ago
   $OLDDT = 0;
   $OLDLVL = 0;
-  if ($result = $mysqli->query("select cap_time, round((129-humidity)*100/130,1) as level from oil where cap_time = (select max(cap_time) from oil where cap_time < adddate(now(), interval -14 day))")) {
+  if ($result = $mysqli->query("select cap_time, round((129-depth) * 100 / 130, 1) as level from oiltank where cap_time = (select max(cap_time) from oiltank where cap_time < adddate(now(), interval -14 day))")) {
     while($row = $result->fetch_assoc()){
       $OLDDT = $row['cap_time'];
       $OLDLVL = $row['level'];
@@ -112,7 +128,7 @@ function getDayRemaining($mysqli) {
   # Latest Level
   $NEWDT = 0;
   $NEWLVL = 0;
-  if ($result = $mysqli->query("select cap_time, round((129-humidity)*100/130,1) as level from oil where cap_time = (select max(cap_time) from oil)")) {
+  if ($result = $mysqli->query("select cap_time, round((129-depth) * 100 / 130, 1) as level from oiltank where cap_time = (select max(cap_time) from oiltank)")) {
     while($row = $result->fetch_assoc()){
       $NEWDT = $row['cap_time'];
       $NEWLVL = $row['level'];
@@ -126,8 +142,8 @@ function getDayRemaining($mysqli) {
   if ($LDIFF >= 0) {
     date_default_timezone_set('Europe/London');
     $DDIFF = date_diff(date_create_from_format("Y-m-d H:i:s", $OLDDT), date_create_from_format("Y-m-d H:i:s", $NEWDT));
-    $MINS = ($DDIFF->format('%d')*24*60) + ($DDIFF->format('%h') *60) + $DDIFF->format('%i');
-    $TILLGONE = ($NEWLVL*($MINS/$LDIFF)/60/24);
+    $MINS = ($DDIFF->format('%d') * 24 * 60) + ($DDIFF->format('%h') * 60) + $DDIFF->format('%i');
+    $TILLGONE = ($NEWLVL * ($MINS / $LDIFF) / 60 / 24);
   }
   echo $TILLGONE;
 }
@@ -150,6 +166,9 @@ function getMysqlData($WANTS) {
       break;
     case "dremain":
       getDayRemaining($mysqli);
+      break;
+    case "battery":
+      getBattery($mysqli);
       break;
     default:
       getTemp($mysqli);

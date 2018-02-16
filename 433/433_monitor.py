@@ -3,9 +3,10 @@
 import subprocess
 import json
 import mysql.connector
+import sys
 
-oil_insert = "insert into oil values (%(time)s, %(temp)s, %(depth)s, 0)"
-temp_insert = "insert into history values (%(time)s, %(temp)s, 0, 0)"
+oil_insert = "insert into oiltank values (%(time)s, %(temp)s, %(depth)s)"
+temp_insert = "insert into temperature values (%(time)s, %(id)s, %(temp)s, %(battery)s)"
 
 dbconfig = {
   "host": "192.168.0.244",
@@ -23,8 +24,12 @@ while True:
     if data['id'] == 119:
       temp_data = {
         "time": data['time'],
-        "temp": data['temperature_C']
+        "id": data['id'],
+        "temp": data['temperature_C'],
+        "battery": data['battery']
       }
+      print "OS Temperature: {0}".format(data['temperature_C'])
+      sys.stdout.flush()
       try:
         cursor.execute(temp_insert, temp_data)
         db.commit()
@@ -36,12 +41,19 @@ while True:
         "temp": data['temperature_C'],
         "depth": data['depth']
       }
-      cursor.execute(oil_insert, oil_data)
-      db.commit()
+      print "Tank: depth: {0} temp: {1}".format(data['depth'], data['temperature_C'])
+      sys.stdout.flush()
+      try:
+        cursor.execute(oil_insert, oil_data)
+        db.commit()
+      except Exception as err:
+        pass
     else:
-      print "Unknown: " + data
+      print "".join(['{0}: {1} '.format(k, v) for k,v in data.iteritems()])
+      sys.stdout.flush()
   else:
     break
 
 cursor.close()
 db.close()
+
