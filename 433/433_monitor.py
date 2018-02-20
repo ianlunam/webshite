@@ -14,7 +14,6 @@ dbconfig = {
   "user":     "root"
 }
 db = mysql.connector.connect(**dbconfig)
-db.ping(True)
 cursor = db.cursor()
 
 proc = subprocess.Popen(['/usr/local/bin/rtl_433','-F','json','-q'],stdout=subprocess.PIPE)
@@ -34,8 +33,10 @@ while True:
         db.commit()
         print "OS Temperature: {0}".format(data['temperature_C'])
       except mysql.connector.errors.IntegrityError:
+        # Ignore duplicates. This fucker sends two the same.
         pass
       except mysql.connector.errors.OperationalError:
+        # Database gone away
         print "Reconnecting"
         try:
           db.reconnect()
@@ -54,6 +55,7 @@ while True:
         db.commit()
         print "Tank: depth: {0} temp: {1}".format(data['depth'], data['temperature_C'])
       except mysql.connector.errors.OperationalError:
+        # Database gone away
         print "Reconnecting"
         try:
           db.reconnect()
@@ -62,6 +64,7 @@ while True:
       except Exception as err:
         print "Generic oil error: {0}".format(type(err))
     else:
+      # Database gone away
       print "Dafuq? " + "".join(['{0}: {1} '.format(k, v) for k,v in data.iteritems()])
   else:
     break
