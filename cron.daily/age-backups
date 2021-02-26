@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+from datetime import datetime
+from shutil import rmtree
+import os
+
+baseDir = "/volumes/backups"
+systems = ['dockers', 'motion', 'openvpn', 'owncloud', 'piwigo', 'webserver']
+
+currentTime = datetime.now()
+
+for system in systems:
+    print(f"Processing {system}")
+    for backup in os.listdir(f"{baseDir}/{system}"):
+        if os.path.isdir(f"{baseDir}/{system}/{backup}") and not os.path.islink(f"{baseDir}/{system}/{backup}"):
+            backupTime = datetime.strptime(backup, '%Y-%m-%d_%H:%M:%S')
+            if (currentTime - backupTime).days > 7:
+                print(f"Deleting {baseDir}/{system}/{backup}")
+                rmtree(f"{baseDir}/{system}/{backup}")
+
+
+systems = ['mysql']
+for system in systems:
+    print(f"Processing {system}")
+    for backup in os.listdir(f"{baseDir}/{system}"):
+        if os.path.isfile(f"{baseDir}/{system}/{backup}") and not os.path.islink(f"{baseDir}/{system}/{backup}"):
+            backupTime = datetime.strptime(backup, 'all-databases-%Y-%m-%d_%H:%M:%S.dmp.gz')
+            if (currentTime - backupTime).days > 14:
+                print(f"Deleting {baseDir}/{system}/{backup}")
+                rmtree(f"{baseDir}/{system}/{backup}")
+

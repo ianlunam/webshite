@@ -1,0 +1,11 @@
+#!/bin/bash
+
+/usr/local/bin/incremental-backup dockers
+/usr/local/bin/incremental-backup motion
+/usr/local/bin/incremental-backup openvpn
+/usr/local/bin/incremental-backup owncloud
+/usr/local/bin/incremental-backup piwigo
+/usr/local/bin/incremental-backup webserver
+
+/volumes/data/dockers/mysql/backups.sh
+

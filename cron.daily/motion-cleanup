@@ -1,0 +1,4 @@
+#!/bin/bash
+
+/usr/bin/find /volumes/data/motion/data -mtime 7 -delete
+
