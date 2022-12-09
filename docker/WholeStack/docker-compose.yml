@@ -1,0 +1,138 @@
+---
+version: "2.1"
+
+
+volumes:
+  redis:
+    driver: local
+
+
+services:
+
+  mysql:
+    image: mariadb
+    container_name: mysql
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /volumes/data/mysql/:/var/lib/mysql
+    ports:
+      - 192.168.0.240:3306:3306
+    restart: unless-stopped
+
+
+  webserver:
+    image: myhttpd:latest
+    depends_on:
+      - mysql
+    container_name: webserver
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+    ports:
+      - 192.168.0.244:80:80
+      - 192.168.0.244:443:443
+    volumes:
+      - /volumes/data/webserver/ian/:/home/ian/
+      - /volumes/data/webserver/www/:/var/www/
+      - /volumes/data/webserver/letsencrypt/:/etc/letsencrypt/
+      - /volumes/data/webserver/httpd/conf.d/vhosts:/etc/apache2/sites-enabled/
+      - /volumes/data/webserver/httpd/htpasswds/:/etc/httpd/htpasswds/
+      - /volumes/data/motion/data/:/var/www/html/lunam/gauge/data/
+
+
+  rtl_433:
+    image: myrtl_433
+    depends_on:
+      - mysql
+    container_name: rtl_433
+    devices:
+      -  /dev/bus/usb/001/002
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
+
+
+  piwigo:
+    image: linuxserver/piwigo
+    depends_on:
+      - mysql
+    container_name: piwigo
+    cap_add:
+      - NET_ADMIN
+    volumes:
+            - /volumes/data/piwigo/config:/config/www/gallery/local/config/
+            - /volumes/data/piwigo/upload:/config/www/gallery/upload/
+            - /volumes/data/piwigo/_data:/config/www/gallery/_data/
+            - /volumes/data/piwigo/galleries:/config/www/gallery/galleries/
+    ports:
+            - 192.168.0.243:80:80
+    restart: unless-stopped
+
+
+  redis:
+    image: webhippie/redis:latest
+    restart: unless-stopped
+    environment:
+      - REDIS_DATABASES=1
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - redis:/var/lib/redis
+
+
+  owncloud:
+    image: owncloud/server:${OWNCLOUD_VERSION}
+    restart: unless-stopped
+    ports:
+      - ${HTTP_PORT}:8080
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      - OWNCLOUD_DOMAIN=${OWNCLOUD_DOMAIN}
+      - OWNCLOUD_DB_TYPE=mysql
+      - OWNCLOUD_DB_NAME=owncloud
+      - OWNCLOUD_DB_USERNAME=owncloud
+      - OWNCLOUD_DB_PASSWORD=LkTrnbAscn4APSto
+      - OWNCLOUD_DB_HOST=192.168.0.240
+      - OWNCLOUD_ADMIN_USERNAME=${ADMIN_USERNAME}
+      - OWNCLOUD_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - OWNCLOUD_MYSQL_UTF8MB4=true
+      - OWNCLOUD_REDIS_ENABLED=true
+      - OWNCLOUD_REDIS_HOST=redis
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - /volumes/data/owncloud/:/mnt/data/
+      - /volumes/data/owncloud/files/:/var/www/owncloud/data/
+
+
+  motion:
+    image: motionproject/motion
+    container_name: motion
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /volumes/data/motion/config/:/usr/local/etc/motion
+      - /volumes/data/motion/data/:/var/www/html/
+    restart: unless-stopped
+
+
+  openvpn:
+    image: kylemanna/openvpn
+    container_name: openvpn
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /volumes/data/openvpn/:/etc/openvpn
+    ports:
+      - 192.168.0.241:1194:1194/udp
+    restart: unless-stopped
+
