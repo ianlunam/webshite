@@ -1,71 +1,49 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import subprocess
 import json
-import mysql.connector
+import pymysql
 import sys
 
-oil_insert = "insert into oiltank values (%(time)s, %(temp)s, %(depth)s)"
-temp_insert = "insert into temperature values (%(time)s, %(id)s, %(temp)s, %(battery)s)"
+temp_insert = "insert into 433data values (%(id)s, %(model)s, %(time)s, %(stat)s, %(val)s)"
 
 dbconfig = {
-  "host": "192.168.0.244",
+  "host": "192.168.0.250",
   "database": "temps",
-  "user":     "root"
+  "user":     "temps",
+  "password": "temps"
 }
-db = mysql.connector.connect(**dbconfig)
+db = pymysql.connect(**dbconfig)
 cursor = db.cursor()
 
-proc = subprocess.Popen(['/usr/local/bin/rtl_433','-F','json','-q'],stdout=subprocess.PIPE)
+proc = subprocess.Popen(['/usr/bin/rtl_433','-F','json','-q'],stdout=subprocess.PIPE)
 while True:
   line = proc.stdout.readline()
   if line != '':
     data = json.loads(line.rstrip())
-    if data['id'] == 119:
-      temp_data = {
-        "time": data['time'],
-        "id": data['id'],
-        "temp": data['temperature_C'],
-        "battery": data['battery']
-      }
-      try:
-        cursor.execute(temp_insert, temp_data)
-        db.commit()
-        print "OS Temperature: {0}".format(data['temperature_C'])
-      except mysql.connector.errors.IntegrityError:
-        # Ignore duplicates. This fucker sends two the same.
-        pass
-      except mysql.connector.errors.OperationalError:
-        # Database gone away
-        print "Reconnecting"
+    if data['model'] == 'RadioHead-ASK':
+        data['payload'] = bytearray(data['payload']).decode()
+    print(json.dumps(data))
+    for stat in data:
+      if stat not in ['time', 'id', 'model']:
+        temp_data = {
+          "time": data['time'],
+          "id": data['id'],
+          "model": data['model'],
+          "stat": stat,
+          "val": str(data[stat])
+        }
         try:
-          db.reconnect()
-        except Exception:
-          pass
-      except Exception as err:
-        print "Generic temp error: {0}".format(type(err))
-    elif data['id'] == 145433412:
-      oil_data = {
-        "time": data['time'],
-        "temp": data['temperature_C'],
-        "depth": data['depth']
-      }
-      try:
-        cursor.execute(oil_insert, oil_data)
-        db.commit()
-        print "Tank: depth: {0} temp: {1}".format(data['depth'], data['temperature_C'])
-      except mysql.connector.errors.OperationalError:
-        # Database gone away
-        print "Reconnecting"
-        try:
-          db.reconnect()
-        except Exception:
-          pass
-      except Exception as err:
-        print "Generic oil error: {0}".format(type(err))
-    else:
-      # Database gone away
-      print "Dafuq? " + "".join(['{0}: {1} '.format(k, v) for k,v in data.iteritems()])
+          cursor.execute(temp_insert, temp_data)
+          db.commit()
+        except pymysql.err.IntegrityError as err:
+            # Bastard sent 2
+            pass
+        except Exception as err:
+          print("Generic temp error: {0}".format(type(err)))
+          print("Error: {0}".format(err))
+          db = pymysql.connect(**dbconfig)
+          cursor = db.cursor()
   else:
     break
   sys.stdout.flush()
